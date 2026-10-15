@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Castle Rock CO Home Value | Lori Dunn, Broker</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <div class="header-content">
+        <img src="/static/images/kerry-lori.jpg" alt="Kerry and Lori Dunn" class="header-photo">
+        <div>
+          <h1>Castle Rock CO Home Value</h1>
+          <p class="tagline">Free Castle Rock & Douglas County estimate<br>Backed by local broker Lori Dunn & certified appraiser Kerry Dunn<br><em>Helping homeowners buy and sell with confidence since 1995</em></p>
+          <p class="referral">Know a neighbor thinking of selling? Refer them and receive a $100 gift card when they list with Lori.</p>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <form id="valuation-form">
+        <div class="form-group autocomplete">
+          <label for="address">Search by Address</label>
+          <div class="search-box">
+            <input type="text" id="address" name="address" list="address-list" 
+                   placeholder="Enter Castle Rock address (e.g. 290 Emerald Dr)" required autocomplete="off">
+            <button type="button" id="search-btn" class="search-btn">Search</button>
+          </div>
+          <datalist id="address-list">
+            {% for addr in addresses %}
+            <option value="{{ addr }}">
+            {% endfor %}
+          </datalist>
+          <small class="hint">Type to see suggested Castle Rock addresses, then click Search</small>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="beds">Beds</label>
+            <input type="number" id="beds" name="beds" min="1" max="10" value="3">
+          </div>
+          <div class="form-group">
+            <label for="baths">Baths</label>
+            <input type="number" id="baths" name="baths" min="1" max="10" step="0.5" value="2.5">
+          </div>
+          <div class="form-group">
+            <label for="sqft">Sq Ft (optional)</label>
+            <input type="number" id="sqft" name="sqft" min="500" max="10000" placeholder="e.g. 2400">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="name">Your Name</label>
+            <input type="text" id="name" name="name" placeholder="Full name">
+          </div>
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" placeholder="you@email.com">
+          </div>
+          <div class="form-group">
+            <label for="phone">Phone</label>
+            <input type="tel" id="phone" name="phone" placeholder="(303) 555-0123">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="intent">Are you considering selling in the next 6–12 months?</label>
+          <select id="intent" name="intent">
+            <option value="">Select one</option>
+            <option value="Yes">Yes</option>
+            <option value="Maybe">Maybe</option>
+            <option value="Just curious">Just curious</option>
+          </select>
+        </div>
+
+        <div class="button-row">
+          <button type="button" id="api-btn" class="primary-btn">Run API</button>
+          <button type="button" id="local-btn" class="secondary-btn">Run Local Model</button>
+        </div>
+        <p class="disclaimer-small">API uses RentCast when configured. Local model uses Castle Rock comps. This is not an appraisal.</p>
+      </form>
+    </section>
+
+    <section id="results" class="results hidden">
+      <h2>Estimated Value for <span id="result-address"></span></h2>
+      <div class="value-box">
+        <div class="main-value">$<span id="estimated"></span></div>
+        <div class="range">Likely range: $<span id="low"></span> – $<span id="high"></span></div>
+        <div class="meta">
+          <span>$<span id="pps"></span>/sq ft</span>
+          <span>Confidence: <span id="confidence"></span></span>
+          <span id="source-badge" class="source"></span>
+        </div>
+        <div id="sources-detail" class="sources-detail" style="margin-top: 0.75rem; font-size: 0.85rem; color: #555;"></div>
+      </div>
+
+      <div class="explanation">
+        <h3>AI Market Insight</h3>
+        <p id="explanation-text"></p>
+      </div>
+
+      <div class="comps">
+        <h3>Recent Comparable Sales</h3>
+        <div id="comps-list"></div>
+      </div>
+
+      <div class="cta">
+        <p>Want a free Seller’s Report or no-obligation listing consultation?</p>
+        <button class="secondary" onclick="requestSellersReport()">Get Free Seller’s Report</button>
+        <button class="secondary" style="margin-left: 0.5rem;" onclick="window.location.href='mailto:lori@dunngroup.net?subject=Request Free CMA - Home Value Estimate'">Get a Free CMA from Lori</button>
+        <button class="secondary" style="margin-left: 0.5rem;" onclick="window.location.href='mailto:lori@dunngroup.net?subject=Schedule Listing Consultation'">Schedule a Listing Consultation</button>
+        <button class="secondary" style="margin-left: 0.5rem;" onclick="callIfOpen()">Call Lori (Business Hours)</button>
+        <button class="secondary" style="margin-left: 0.5rem;" onclick="callIfOpen()">Request Appraisal (Kerry)</button>
+        <br><br>
+        <button type="button" id="download-btn" class="secondary">Download Results</button>
+        <button type="button" id="pdf-btn" class="secondary" style="margin-left: 0.5rem;">Export to PDF</button>
+        <button type="button" id="print-btn" class="secondary" style="margin-left: 0.5rem;">Print</button>
+      </div>
+    </section>
+
+    <section class="legal">
+      <h3>Important Disclaimer</h3>
+      <p>
+        This is an automated valuation estimate generated for informational purposes only. 
+        It is <strong>not an appraisal</strong> and does not constitute an appraisal under USPAP. 
+        It does not include a physical inspection of the property and should not be relied upon for lending, insurance, legal, or financial decisions. 
+        For a formal appraisal, contact Kerry Dunn, Certified Appraiser. 
+        Actual market price depends on the home’s condition, location specifics, updates, and current buyer demand. 
+        Data is based on publicly available recent sales in the Castle Rock / Douglas County area and is provided “as is.”
+      </p>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>&copy; 2026 Castle Rock CO Home Value | Lori Dunn, Broker & Kerry Dunn, Certified Appraiser. For informational use only. | <a href="/leads" style="color:#adb5bd;">View Leads</a></p>
+    </div>
+  </footer>
+
+  <script>
+    function callIfOpen() {
+      const now = new Date();
+      const day = now.getDay(); // 0=Sun, 1=Mon ... 6=Sat
+      const hour = now.getHours();
+      const isOpen = day >= 1 && day <= 6 && hour >= 8 && hour < 17;
+      if (isOpen) {
+        window.location.href = "tel:303-257-6580";
+      } else {
+        alert("Phone hours are Monday–Saturday, 8:00 AM – 5:00 PM Mountain Time. Please call back during business hours or use the Schedule a Call / Email options.");
+      }
+    }
+
+    function requestSellersReport() {
+      const address = document.getElementById("result-address").textContent;
+      const name = document.getElementById("name").value || "there";
+      const subject = encodeURIComponent("Request Free Seller’s Report");
+      const body = encodeURIComponent(`Hi Lori,\n\nPlease send me the free Seller’s Report for ${address}.\n\nName: ${name}\n\nThank you.`);
+      window.location.href = `mailto:lori@dunngroup.net?subject=${subject}&body=${body}`;
+    }
+
+    // Capture source from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const src = urlParams.get("src");
+    if (src) {
+      sessionStorage.setItem("lead_source", src);
+    }
+
+    async function runValuation(forceLocal = false) {
+      const apiBtn = document.getElementById("api-btn");
+      const localBtn = document.getElementById("local-btn");
+      const address = document.getElementById("address").value.trim();
+      
+      if (!address) {
+        alert("Please enter an address");
+        return;
+      }
+
+      apiBtn.disabled = true;
+      localBtn.disabled = true;
+      if (forceLocal) {
+        localBtn.textContent = "Running Local...";
+      } else {
+        apiBtn.textContent = "Running API...";
+      }
+
+      const formData = {
+        address: address,
+        beds: document.getElementById("beds").value,
+        baths: document.getElementById("baths").value,
+        sqft: document.getElementById("sqft").value,
+        name: document.getElementById("name").value,
+        email: document.getElementById("email").value,
+        phone: document.getElementById("phone").value,
+        intent: document.getElementById("intent").value,
+        src: sessionStorage.getItem("lead_source") || "direct",
+        force_local: forceLocal
+      };
+
+      try {
+        const res = await fetch("/estimate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData)
+        });
+        const data = await res.json();
+
+        if (data.error) {
+          alert(data.error);
+          return;
+        }
+
+        document.getElementById("result-address").textContent = data.address;
+        document.getElementById("estimated").textContent = data.estimate.estimated.toLocaleString();
+        document.getElementById("low").textContent = data.estimate.low.toLocaleString();
+        document.getElementById("high").textContent = data.estimate.high.toLocaleString();
+        document.getElementById("pps").textContent = data.estimate.price_per_sqft;
+        document.getElementById("confidence").textContent = data.estimate.confidence;
+        document.getElementById("source-badge").textContent = data.estimate.source || "Multi-source";
+        document.getElementById("explanation-text").textContent = data.explanation;
+
+        // Show sources detail
+        const sourcesDiv = document.getElementById("sources-detail");
+        if (data.estimate.sources_detail && data.estimate.sources_detail.length > 0) {
+          sourcesDiv.innerHTML = "<strong>Sources used:</strong> " + 
+            data.estimate.sources_detail.map(s => 
+              `${s.name}: $${s.value.toLocaleString()}`
+            ).join(" · ");
+        } else {
+          sourcesDiv.innerHTML = "";
+        }
+
+        const compsList = document.getElementById("comps-list");
+        compsList.innerHTML = data.estimate.comps.map(c => `
+          <div class="comp">
+            <div class="comp-address">${c.address}</div>
+            <div class="comp-details">$${c.price.toLocaleString()} · ${c.sqft.toLocaleString()} sqft · ${c.beds} bed / ${c.baths} bath · Sold ${c.sold}</div>
+          </div>
+        `).join("");
+
+        document.getElementById("results").classList.remove("hidden");
+        document.getElementById("results").scrollIntoView({ behavior: "smooth" });
+      } catch (err) {
+        alert("Something went wrong. Please try again.");
+      } finally {
+        apiBtn.disabled = false;
+        localBtn.disabled = false;
+        apiBtn.textContent = "Run API";
+        localBtn.textContent = "Run Local Model";
+      }
+    }
+
+    document.getElementById("api-btn").addEventListener("click", () => runValuation(false));
+    document.getElementById("local-btn").addEventListener("click", () => runValuation(true));
+    document.getElementById("search-btn").addEventListener("click", () => runValuation(false));
+
+    document.getElementById("address").addEventListener("keypress", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        runValuation(false);
+      }
+    });
+
+    document.getElementById("download-btn").addEventListener("click", () => {
+      const address = document.getElementById("result-address").textContent;
+      const estimated = document.getElementById("estimated").textContent;
+      const low = document.getElementById("low").textContent;
+      const high = document.getElementById("high").textContent;
+      const pps = document.getElementById("pps").textContent;
+      const confidence = document.getElementById("confidence").textContent;
+      const source = document.getElementById("source-badge").textContent;
+      const explanation = document.getElementById("explanation-text").textContent;
+      
+      const comps = Array.from(document.querySelectorAll(".comp")).map(c => 
+        c.querySelector(".comp-address").textContent + " — " + c.querySelector(".comp-details").textContent
+      ).join("\n");
+
+      const content = `HOME VALUE ESTIMATE
+====================
+Address: ${address}
+Estimated Value: $${estimated}
+Likely Range: $${low} – $${high}
+Price per Sq Ft: $${pps}
+Confidence: ${confidence}
+Source: ${source}
+
+AI MARKET INSIGHT
+-----------------
+${explanation}
+
+COMPARABLE SALES
+----------------
+${comps}
+
+DISCLAIMER
+----------
+This is an automated valuation estimate for informational purposes only. 
+It is not an appraisal and should not be used for lending, insurance, or legal decisions.
+Generated: ${new Date().toLocaleString()}
+`;
+
+      const blob = new Blob([content], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `home-value-${address.replace(/[^a-z0-9]/gi, "-").toLowerCase()}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+
+    document.getElementById("pdf-btn").addEventListener("click", () => {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      
+      const address = document.getElementById("result-address").textContent;
+      const estimated = document.getElementById("estimated").textContent;
+      const low = document.getElementById("low").textContent;
+      const high = document.getElementById("high").textContent;
+      const pps = document.getElementById("pps").textContent;
+      const confidence = document.getElementById("confidence").textContent;
+      const source = document.getElementById("source-badge").textContent;
+      const explanation = document.getElementById("explanation-text").textContent;
+      
+      let y = 20;
+      doc.setFontSize(18);
+      doc.text("Castle Rock CO Home Value", 20, y);
+      y += 12;
+      
+      doc.setFontSize(12);
+      doc.text(`Address: ${address}`, 20, y); y += 8;
+      doc.setFontSize(16);
+      doc.text(`Estimated Value: $${estimated}`, 20, y); y += 10;
+      doc.setFontSize(12);
+      doc.text(`Likely Range: $${low} – $${high}`, 20, y); y += 7;
+      doc.text(`Price per Sq Ft: $${pps}`, 20, y); y += 7;
+      doc.text(`Confidence: ${confidence}`, 20, y); y += 7;
+      doc.text(`Source: ${source}`, 20, y); y += 12;
+      
+      doc.setFontSize(14);
+      doc.text("AI Market Insight", 20, y); y += 8;
+      doc.setFontSize(10);
+      const splitExplanation = doc.splitTextToSize(explanation, 170);
+      doc.text(splitExplanation, 20, y);
+      y += splitExplanation.length * 5 + 10;
+      
+      doc.setFontSize(14);
+      doc.text("Comparable Sales", 20, y); y += 8;
+      doc.setFontSize(9);
+      document.querySelectorAll(".comp").forEach(c => {
+        const line = c.querySelector(".comp-address").textContent + " — " + c.querySelector(".comp-details").textContent;
+        const split = doc.splitTextToSize(line, 170);
+        doc.text(split, 20, y);
+        y += split.length * 4 + 2;
+        if (y > 270) { doc.addPage(); y = 20; }
+      });
+      
+      y += 10;
+      doc.setFontSize(10);
+      doc.setTextColor(100);
+      const disclaimer = "DISCLAIMER: This is an automated valuation estimate for informational purposes only. It is not an appraisal and should not be used for lending, insurance, or legal decisions.";
+      const splitDisc = doc.splitTextToSize(disclaimer, 170);
+      doc.text(splitDisc, 20, y);
+      
+      doc.save(`home-value-${address.replace(/[^a-z0-9]/gi, "-").toLowerCase()}.pdf`);
+    });
+
+    document.getElementById("print-btn").addEventListener("click", () => {
+      window.print();
+    });
+
+    // Prevent form submit on enter
+    document.getElementById("valuation-form").addEventListener("submit", (e) => {
+      e.preventDefault();
+      runValuation(false);
+    });
+  </script>
+</body>
+</html>

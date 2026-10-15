@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Leads Dashboard</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <style>
+    table { width: 100%; border-collapse: collapse; background: white; margin-top: 1rem; }
+    th, td { padding: 0.75rem; text-align: left; border-bottom: 1px solid #dee2e6; font-size: 0.9rem; }
+    th { background: #1e3a5f; color: white; }
+    .container { max-width: 1100px; }
+    .actions { margin: 1rem 0; }
+    .actions a { background: #2e7d32; color: white; padding: 0.5rem 1rem; border-radius: 4px; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <h1>Leads Dashboard</h1>
+      <p><a href="/" style="color: white;">← Back to Valuation Tool</a></p>
+    </div>
+  </header>
+  <main class="container">
+    <div class="actions">
+      <a href="/export-leads">Download Leads as CSV</a>
+    </div>
+    {% if leads %}
+    <p>{{ leads|length }} lead{{ 's' if leads|length != 1 else '' }} captured</p>
+    <table>
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>Address</th>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Phone</th>
+          <th>Est. Value</th>
+          <th>Source</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for lead in leads %}
+        <tr>
+          <td>{{ lead.timestamp[:16] }}</td>
+          <td>{{ lead.address }}</td>
+          <td>{{ lead.name or "—" }}</td>
+          <td>{{ lead.email or "—" }}</td>
+          <td>{{ lead.phone or "—" }}</td>
+          <td>${{ "{:,}".format(lead.estimated_value) }}</td>
+          <td>{{ lead.source or "demo" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p>No leads yet. Submit a valuation to see them here.</p>
+    {% endif %}
+  </main>
+</body>
+</html>
